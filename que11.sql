@@ -16,29 +16,33 @@ product_code | formatted_name                | stock_level | status
 ```
 */
 
-WITH TEMP (min_qty)
+WITH min_qty
 AS (
-	SELECT min(i.quantity)
+	SELECT min(i.quantity) AS min_q
 	FROM products p
 	INNER JOIN inventory i ON p.product_id = i.product_id
 	WHERE p.category = "Electronics"
 	)
-SELECT lpad(p.product_id, 5, 0) AS product_code,
-	rpad(p.product_name, 30, '.') AS formatted_name,
-	coalesce(i.quantity, "Out of Stock") AS stock_level,
-	CASE 
-		WHEN i.quantity = TEMP.min_qty
-			THEN nullif(i.quantity, TEMP.min_qty)
-		WHEN i.quantity > TEMP.min_qty AND i.quantity <= 150
+SELECT lpad(p.product_id, 5, 0) AS product_code
+	,rpad(p.product_name, 30, '.') AS formatted_name
+	,coalesce(i.quantity, "Out of Stock") AS stock_level
+	,CASE 
+		WHEN i.quantity = min_q
+			THEN nullif(i.quantity, min_q)
+		WHEN i.quantity > min_q
+			AND i.quantity <= 150
 			THEN "Low"
-		WHEN i.quantity > 150 AND i.quantity <= 200
+		WHEN i.quantity > 150
+			AND i.quantity <= 200
 			THEN "Normal"
 		WHEN i.quantity > 200
 			THEN "high"
 		END AS stock_status
 FROM products p
-INNER JOIN inventory i ON p.product_id = i.product_id,TEMP
+INNER JOIN inventory i ON p.product_id = i.product_id
+	,min_qty
 WHERE p.category = "Electronics";
+
 
 
 /* Comments
@@ -60,5 +64,5 @@ find stock level and status.so i have used
     •  "coalesce(i.quantity, "Out of Stock")" to return value as out of stock in case the quantity is null
     •  "nullif(i.quantity, TEMP.min_qty)" to retuen null if both value are equal
     •  CASE WHEN to assign stock status based on different quantity levels
-•  FROM products table JOIN with inventory table and the TEMP CTE
+•  FROM products table JOIN with inventory table and the min_qty CTE
 •  WHERE clause i have specified the category as electronics to filter the data for electronics 
